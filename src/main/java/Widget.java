@@ -22,6 +22,8 @@ public final class Widget extends JButton implements CustomStatusBarWidget, AWTE
     private static final Color COLOR_IDLE = new JBColor(new Color(189, 188, 0), new Color(128, 126, 0));
     private static final String SAMPLE_STRING = formatDuration(999999999999L);
     private States states = new States();
+    private boolean isBeforeFirstClick = true;
+    private long openedTimestamp = System.currentTimeMillis();
     private boolean running = false;
     private long startAtMsec = 0;
     private boolean idle = false;
@@ -89,6 +91,7 @@ public final class Widget extends JButton implements CustomStatusBarWidget, AWTE
         if (runningForSeconds > 0) {
             states.totalTimeSec += runningForSeconds;
             startAtMsec += runningForSeconds * 1000;
+            states.lastInProjectTimestamp += System.currentTimeMillis();
         }
         return states;
     }
@@ -107,6 +110,7 @@ public final class Widget extends JButton implements CustomStatusBarWidget, AWTE
 
     private synchronized void setRunning(boolean running) {
         if (!this.running && running) {
+            isBeforeFirstClick = false;
             this.running = true;
             this.startAtMsec = System.currentTimeMillis();
 
@@ -165,7 +169,11 @@ public final class Widget extends JButton implements CustomStatusBarWidget, AWTE
     public void paintComponent(final Graphics g) {
         long result;
         synchronized (this) {
-            result = states.totalTimeSec + runningForSeconds();
+            if (isBeforeFirstClick) {
+                result = (openedTimestamp - states.lastInProjectTimestamp) / 1000;
+            } else {
+                result = states.totalTimeSec + runningForSeconds();
+            }
         }
         final String info = formatDuration(result);
 
